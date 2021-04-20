@@ -3,12 +3,15 @@
 '''
 import requests
 import urllib.parse
+from pathlib import Path
+import pandas as pd
+import csv
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, List
+
 from datetime import datetime
 from copy import deepcopy
-import json
 
 class WebXenoCantoException(Exception):
     pass
@@ -20,6 +23,17 @@ class WebConsts:
     query : str
     query_args : Dict
     api_help_url : str
+
+@dataclass
+class XenoCantoRecordingConsts:
+    data_names : Dict
+    id_key : str
+    recordings_key : str = 'recordings'
+    url_description : str = 'https://www.xeno-canto.org/explore/api'
+
+    @property
+    def data_names_inv(self):
+        return {v: k for k, v in self.data_names.items()}
 
 class WebXenoCanto(object):
     '''Handler for audio data requested from Xeno Canto web page
@@ -43,6 +57,9 @@ class WebXenoCanto(object):
 
             self.query_base[self.web_consts.query_args['uploaded_since']] = since
         self.reset_payload()
+
+    def __len__(self):
+        return len(self.payloads)
 
     def _get(self, url, params):
         return requests.get(url, params)
@@ -107,6 +124,67 @@ class WebXenoCanto(object):
 
         return self
 
+
+class RawDataHandler(object):
+    '''Bla bla
+
+    '''
+    db_file_name = 'db.csv'
+
+    def __init__(self, db_rootdir, subfolder, payload_consts=None, start_clean=False):
+
+        self.db_rootdir = db_rootdir
+        self.audio_subfolder = subfolder
+        self.payload_consts = payload_consts
+
+        self.db_audiodir = '{}/{}'.format(self.db_rootdir, self.audio_subfolder)
+        Path(self.db_rootdir).mkdir(parents=True, exist_ok=True)
+        Path(self.db_audiodir).mkdir(parents=True, exist_ok=True)
+
+        if start_clean:
+            Path(self.db_rootdir + '/' + self.db_file_name).unlink(missing_ok=True)
+
+    def populate_metadata(self, payload, col_subset=None):
+        '''Bla bla
+
+        '''
+        if col_subset is None:
+            datacols = list(self.payload_consts.data_names.values())
+        else:
+            datacols = [self.payload_consts.data_names[key] for key in col_subset]
+
+        df_payload = pd.DataFrame(payload[self.payload_consts.recordings_key], columns=datacols)
+        df_payload = df_payload.rename(columns=self.payload_consts.data_names_inv).set_index(self.payload_consts.id_key)
+
+        db_file = self.db_rootdir + '/' + self.db_file_name
+        if not Path(db_file).exists():
+            df_payload.to_csv(db_file)
+        else:
+            with open(db_file, 'a') as fcsv:
+                data_str = df_payload.to_csv(header=False)
+                fcsv.write(data_str)
+
+    def deduplicate_db(self):
+        '''Bla bla
+
+        '''
+        raise NotImplementedError('De-duplication not implemented yet')
+
+    def download_audio(self, payload):
+        '''Bla bla
+
+        '''
+        for rec in payload[self.payload_consts.recordings_key]:
+            url_partial = rec[self.payload_consts.data_names['file_url']]
+            url = 'https:{}'.format(url_partial)
+            r = requests.get(url, allow_redirects=True)
+
+            id_key = rec[self.payload_consts.data_names['catalogue_nr']]
+            suffix = rec[self.payload_consts.data_names['file_name_original']].split('.')[-1]
+            with open('{}/{}.{}'.format(self.db_audiodir, id_key, suffix), 'wb') as f_audio_file:
+                f_audio_file.write(r.content)
+
+
 web_xeno_canto_consts = WebConsts(
     base_url='https://www.xeno-canto.org/api/2',
     entity_name='recordings',
@@ -120,6 +198,31 @@ web_xeno_canto_consts = WebConsts(
     api_help_url='https://www.xeno-canto.org/help/search'
 )
 
+web_xeno_canto_payload_consts = XenoCantoRecordingConsts(
+    id_key = 'catalogue_nr',
+    data_names = {
+        'catalogue_nr' : 'id',
+        'generic_name' : 'gen',
+        'specific_name' : 'sp',
+        'subspecies_name' : 'ssp',
+        'english_name' : 'en',
+        'country_recorded' : 'cnt',
+        'location_name' : 'loc',
+        'latitude' : 'lat',
+        'longitude' : 'lng',
+        'sound_type' : 'type',
+        'recording_details_url' : 'url',
+        'file_url' : 'file',
+        'file_name_original' : 'file-name',
+        'license' : 'lic',
+        'quality_rating' : 'q',
+        'length_recording' : 'length',
+        'date_recording' : 'date',
+        'time_of_day_recording' : 'time',
+        'bird_seen' : 'bird-seen'
+    }
+)
+
 def test1():
     xeno = WebXenoCanto(web_xeno_canto_consts)
     xeno.query(country='iceland', recording_quality_equal='A').get()
@@ -128,4 +231,14 @@ def test2():
     xeno = WebXenoCanto(web_xeno_canto_consts)
     xeno.query(country='iceland', recording_quality_gt='C').get_all()
 
-test2()
+def test3():
+    xeno = WebXenoCanto(web_xeno_canto_consts)
+    xeno.query(country='iceland', recording_quality_equal='A').get()
+
+    db = RawDataHandler(db_rootdir='./test_db', subfolder='audio',
+                        payload_consts=web_xeno_canto_payload_consts, start_clean=True)
+    for payload in xeno.payloads:
+        db.populate_metadata(payload, col_subset=['catalogue_nr', 'english_name', 'country_recorded', 'file_url'])
+        db.download_audio(payload)
+
+test3()
