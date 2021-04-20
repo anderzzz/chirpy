@@ -42,7 +42,7 @@ class WebXenoCanto(object):
                 raise ValueError("Incorrect data format, should be YYYY-MM-DD")
 
             self.query_base[self.web_consts.query_args['uploaded_since']] = since
-        self.payload = None
+        self.reset_payload()
 
     def _get(self, url, params):
         return requests.get(url, params)
@@ -52,6 +52,13 @@ class WebXenoCanto(object):
                                         self.web_consts.entity_name),
                          params)
 
+    def reset_payload(self):
+        '''Bla bla
+
+        '''
+        self.payload = None
+        self.payloads = []
+
     def get(self):
         '''Bla bla
 
@@ -59,19 +66,32 @@ class WebXenoCanto(object):
         # The parameters contain characters that normally are turned into percent encoding that do not parse
         # right at Xeno Canto server. Hence the urlencode is used to make the parameter string
         response = self._get_records(
-            urllib.parse.urlencode({self.web_consts.query : self.query_string}, safe=':+')
+            urllib.parse.urlencode({self.web_consts.query : self.query_string}, safe=':+&=')
         )
 
         if response.status_code == 200:
             self.payload = response.json()
+            self.payloads.append(self.payload)
             return self
         else:
-            raise WebXenoCantoException('Exception in database get. Code {}'.format(response.status_code))
+            raise WebXenoCantoException('Exception in database get for command {}. Code: {}'.format(response.url, response.status_code))
 
-    def query(self, **kwargs):
+    def get_all(self):
         '''Bla bla
 
         '''
+        self.get()
+        if self.payload['page'] < self.payload['numPages']:
+            self.query(page=self.payload['page'] + 1, **self.current_query_kwargs).get_all()
+
+        return self
+
+    def query(self, page=None, **kwargs):
+        '''Bla bla
+
+        '''
+        self.current_query_kwargs = kwargs
+
         query_payload = deepcopy(self.query_base)
         for key, val in kwargs.items():
             query_payload[self.web_consts.query_args[key]] = val
@@ -81,6 +101,9 @@ class WebXenoCanto(object):
             self.query_string += '{}:{}+'.format(k, v)
         else:
             self.query_string = self.query_string[:-1]
+
+        if not page is None:
+            self.query_string += '&page={}'.format(page)
 
         return self
 
@@ -101,4 +124,8 @@ def test1():
     xeno = WebXenoCanto(web_xeno_canto_consts)
     xeno.query(country='iceland', recording_quality_equal='A').get()
 
-test1()
+def test2():
+    xeno = WebXenoCanto(web_xeno_canto_consts)
+    xeno.query(country='iceland', recording_quality_gt='C').get_all()
+
+test2()
