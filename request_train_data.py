@@ -181,7 +181,12 @@ class RawDataHandler(object):
 
             id_key = rec[self.payload_consts.data_names['catalogue_nr']]
             suffix = rec[self.payload_consts.data_names['file_name_original']].split('.')[-1]
-            with open('{}/{}.{}'.format(self.db_audiodir, id_key, suffix), 'wb') as f_audio_file:
+            audio_file_name = '{}/{}.{}'.format(self.db_audiodir, id_key, suffix)
+
+            if Path(audio_file_name).exists():
+                print('Warning! Audio file {} exists, and is overwritten'.format(audio_file_name))
+
+            with open(audio_file_name, 'wb') as f_audio_file:
                 f_audio_file.write(r.content)
 
 
