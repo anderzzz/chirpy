@@ -1,24 +1,27 @@
 '''Handle train data
 
 '''
-import pandas as pd
-
 import torch
 from torch.utils.data import Dataset
 
 from pydub import AudioSegment
 
-from request_train_data import RawDataHandler
+from request_train_data import RawDataHandler, label_maker_factory
+from transforms import AudioTo1DTensor
+
+class ChirpyDatasetFileTypeException(Exception):
+    pass
 
 class ChirpyDataset(Dataset):
     '''Bla bla
 
     '''
-    def __init__(self, db_rootdir, subfolder):
+    def __init__(self, db_rootdir, subfolder, label_maker, transform):
         super(ChirpyDataset, self).__init__()
 
         self.rawdata = RawDataHandler(db_rootdir, subfolder)
-        self.audio_processor = AudioProcessor()
+        self.label_maker = label_maker
+        self.transform = transform
 
     def __len__(self):
         return self.rawdata.__len__()
@@ -30,41 +33,28 @@ class ChirpyDataset(Dataset):
 
         db_item = self.rawdata.get_db_key_(item)
         audio_file_path = self.rawdata.get_audio_file_path_(db_item['catalogue_nr'])
-
-        self.audio_processor(audio_file_path)
-
-        raise RuntimeError('BOOOO!')
-
-        return None
-
-class AudioProcessor(object):
-    '''Process the raw input audio file such that it can be integrated with PyTorch
-
-    Currently this wraps methods and objects of the `pydub` library. This library requires the
-    command-line tool `ffmpeg` to be installed. If the script is missing, the conversion will
-    crash with error. Installation on Mac: `brew install ffmpeg`.
-
-    '''
-    def __init__(self):
-        self._audio = None
-
-    def __call__(self, path_source_file):
-        '''Bla bla
-
-        '''
-        if path_source_file.suffix == '.wav':
+        if audio_file_path.suffix == '.wav':
             source_type = 'wav'
-        elif path_source_file.suffix == '.mp3':
+        elif audio_file_path.suffix == '.mp3':
             source_type = 'mp3'
         else:
-            source_type = None
+            raise ChirpyDatasetFileTypeException('Inferred file format for file {} not supported'.format(str(audio_file_path)))
 
-        self._audio = AudioSegment.from_file(str(path_source_file), format=source_type)
-        print (self._audio)
+        self._audio = AudioSegment.from_file(str(audio_file_path), format=source_type)
+
+        label = self.label_maker(db_item)
+        sample = self.transform(label, self._audio)
+
+        return {'label' : label, 'audio' : sample}
 
 def test1():
-    dataset = ChirpyDataset('./test_db', 'audio')
+    transforms = AudioTo1DTensor()
+    label_maker = label_maker_factory.create('english name')
+    dataset = ChirpyDataset('./test_db', 'audio',
+                            label_maker=label_maker,
+                            transform=transforms)
     for i in range(len(dataset)):
         print (dataset[i])
+        raise RuntimeError('DUMP!')
 
 test1()

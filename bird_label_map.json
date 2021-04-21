@@ -1,0 +1,20 @@
+{
+  "bird_species_source": "https://www.xeno-canto.org",
+  "latest_update": "2021-04-21",
+  "bird_species_labels": [
+    {
+      "label": "0",
+      "generic_name": "",
+      "specific_name": "",
+      "subspecies_name": "",
+      "english_name": "Barnacle Goose"
+    },
+    {
+      "label": "1",
+      "generic_name": "",
+      "specific_name": "",
+      "subspecies_name": "",
+      "english_name": "Greylag Goose"
+    }
+  ]
+}
