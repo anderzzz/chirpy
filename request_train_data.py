@@ -16,6 +16,9 @@ from copy import deepcopy
 class WebXenoCantoException(Exception):
     pass
 
+class RawDataHandlerError(Exception):
+    pass
+
 @dataclass
 class WebConsts:
     base_url : str
@@ -141,8 +144,37 @@ class RawDataHandler(object):
         Path(self.db_rootdir).mkdir(parents=True, exist_ok=True)
         Path(self.db_audiodir).mkdir(parents=True, exist_ok=True)
 
+        self.db_file = self.db_rootdir + '/' + self.db_file_name
         if start_clean:
-            Path(self.db_rootdir + '/' + self.db_file_name).unlink(missing_ok=True)
+            Path(self.db_file).unlink(missing_ok=True)
+
+    def __len__(self):
+        with open(self.db_file) as fin:
+            return sum(1 for _ in fin) - 1
+
+    def get_db_key_(self, k_row):
+        '''Bla bla
+
+        '''
+        df = pd.read_csv(self.db_file, nrows=1, skiprows=list(range(k_row)))
+        if df.shape[0] != 1:
+            raise RawDataHandlerError('Row number {} does not return a single row. Corrupted database?'.format(k_row))
+        return df.to_dict(orient='records')[0]
+
+    def get_audio_file_path_(self, catalogue_nr):
+        '''Return the file path to the audio file associated with the given catalogue number
+
+        Args:
+            catalogue_nr (int): The catalogue number for which to extract audio file path
+
+        Returns:
+            path (PosixPath): Path to the audio file, represented as `pathlib.PosixPath` object
+
+        '''
+        file = sorted(Path(self.db_audiodir).glob('{}.*'.format(catalogue_nr)))
+        if len(file) != 1:
+            raise RawDataHandlerError('Audio file for catalogue number {} returns {} files rather than one file'.format(catalogue_nr, len(file)))
+        return file[0]
 
     def populate_metadata(self, payload, col_subset=None):
         '''Bla bla
@@ -156,11 +188,10 @@ class RawDataHandler(object):
         df_payload = pd.DataFrame(payload[self.payload_consts.recordings_key], columns=datacols)
         df_payload = df_payload.rename(columns=self.payload_consts.data_names_inv).set_index(self.payload_consts.id_key)
 
-        db_file = self.db_rootdir + '/' + self.db_file_name
-        if not Path(db_file).exists():
-            df_payload.to_csv(db_file)
+        if not Path(self.db_file).exists():
+            df_payload.to_csv(self.db_file)
         else:
-            with open(db_file, 'a') as fcsv:
+            with open(self.db_file, 'a') as fcsv:
                 data_str = df_payload.to_csv(header=False)
                 fcsv.write(data_str)
 
@@ -246,4 +277,4 @@ def test3():
         db.populate_metadata(payload, col_subset=['catalogue_nr', 'english_name', 'country_recorded', 'file_url'])
         db.download_audio(payload)
 
-test3()
+#test3()
