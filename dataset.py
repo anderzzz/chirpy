@@ -31,31 +31,36 @@ class ChirpyDataset(Dataset):
         db_item = self.rawdata.get_db_key_(item)
         audio_file_path = self.rawdata.get_audio_file_path_(db_item['catalogue_nr'])
 
-        audio_tensor = self.audio_processor.convert(audio_file_path, 'torch')
+        self.audio_processor(audio_file_path)
 
         raise RuntimeError('BOOOO!')
 
         return None
 
 class AudioProcessor(object):
-    '''Bla bla
+    '''Process the raw input audio file such that it can be integrated with PyTorch
+
+    Currently this wraps methods and objects of the `pydub` library. This library requires the
+    command-line tool `ffmpeg` to be installed. If the script is missing, the conversion will
+    crash with error. Installation on Mac: `brew install ffmpeg`.
 
     '''
     def __init__(self):
-        pass
+        self._audio = None
 
-    def convert(self, path_source_file, target):
+    def __call__(self, path_source_file):
         '''Bla bla
 
         '''
-        if target == 'torch':
-            return self._convert_torch(path_source_file)
-
+        if path_source_file.suffix == '.wav':
+            source_type = 'wav'
+        elif path_source_file.suffix == '.mp3':
+            source_type = 'mp3'
         else:
-            raise ValueError('Unknown target type for audio conversion: {}'.format(target))
+            source_type = None
 
-    def _convert_torch(self, path):
-        pass
+        self._audio = AudioSegment.from_file(str(path_source_file), format=source_type)
+        print (self._audio)
 
 def test1():
     dataset = ChirpyDataset('./test_db', 'audio')
