@@ -4,6 +4,7 @@
 import torch
 import pydub
 import math
+from numpy.random import randint
 
 class AudioTransformInitializationException(Exception):
     pass
@@ -12,9 +13,19 @@ class AudioTransformChunkMethodException(Exception):
     pass
 
 class Compose(object):
-    pass
+    '''Bla bla
 
-class AudioTo1DTensor(object):
+    '''
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, audio):
+        for transform in self.transforms:
+            audio = transform(audio)
+
+        return audio
+
+class AudioToTensorTransform(object):
     '''Bla bla
 
     '''
@@ -131,7 +142,57 @@ class AudioWhiteNoiseTransform(object):
 
     '''
     def __init__(self):
-        pass
+        raise NotImplementedError()
 
     def __call__(self, audio):
         pass
+
+class AudioRandomChunkTransform(object):
+    '''Bla bla
+
+    '''
+    def __init__(self, run_time, strict=True):
+        self.run_time = run_time
+        self.strict = strict
+
+    def __call__(self, audio):
+        '''Bla bla
+
+        '''
+        total_ms = len(audio)
+        if total_ms < self.run_time:
+            if self.strict:
+                raise AudioTransformChunkMethodException('Total run-time for {} is {}, which is less than specified run-time {}'.format(audio, total_ms, self.run_time))
+            else:
+                silent_slack = self.run_time - total_ms
+                start = 0
+        else:
+            silent_slack = 0
+            start = randint(low=0, high=total_ms - self.run_time)
+
+        audio_slice = audio[start: start + self.run_time - silent_slack]
+        if silent_slack > 0:
+            audio_slice += pydub.AudioSegment.silent(silent_slack)
+
+        return audio_slice
+
+class AudioOverlayTransform(object):
+    '''Bla bla
+
+    '''
+    def __init__(self):
+        raise NotImplementedError()
+
+    def __call__(self, audio):
+        pass
+
+class AudioRandomImpulseTransform(object):
+    '''Bla bla
+
+    '''
+    def __init__(self):
+        raise NotImplementedError()
+
+    def __call__(self, audio):
+        pass
+

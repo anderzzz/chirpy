@@ -7,21 +7,25 @@ from torch.utils.data import Dataset
 from pydub import AudioSegment
 
 from request_train_data import RawDataHandler, label_maker_factory
-from transforms import AudioTo1DTensor, AudioChunkifyTransform
+from transforms import AudioToTensorTransform, AudioChunkifyTransform, AudioRandomChunkTransform, Compose
 
 class ChirpyDatasetFileTypeException(Exception):
+    pass
+
+class ChirpyDatasetTransformationIncompletenessException(Exception):
     pass
 
 class ChirpyDataset(Dataset):
     '''Bla bla
 
     '''
-    def __init__(self, db_rootdir, subfolder, label_maker, transform):
+    def __init__(self, db_rootdir, subfolder, label_maker, transform, force_mono=True):
         super(ChirpyDataset, self).__init__()
 
         self.rawdata = RawDataHandler(db_rootdir, subfolder)
         self.label_maker = label_maker
         self.transform = transform
+        self.force_mono = force_mono
 
     def __len__(self):
         return self.rawdata.__len__()
@@ -42,13 +46,24 @@ class ChirpyDataset(Dataset):
 
         self._audio = AudioSegment.from_file(str(audio_file_path), format=source_type)
 
+        if self.force_mono:
+            if self._audio.channels == 1:
+                pass
+            else:
+                self._audio = self._audio.set_channels(1)
+
         label = self.label_maker(db_item)
         sample = self.transform(self._audio)
+
+        if not isinstance(sample, torch.Tensor):
+            raise ChirpyDatasetTransformationIncompletenessException('The audio must at least be transformed into ' + \
+                                                                     'a PyTorch Tensor, see ' + \
+                                                                     '`transforms.AudioToTensorTransform`')
 
         return {'label' : label, 'audio' : sample}
 
 def test1():
-    transforms = AudioTo1DTensor()
+    transforms = AudioToTensorTransform()
     label_maker = label_maker_factory.create('english name')
     dataset = ChirpyDataset('./test_db', 'audio',
                             label_maker=label_maker,
@@ -67,5 +82,24 @@ def test2():
         print (dataset[i])
         raise RuntimeError('Dummy')
 
+def test3():
+    transform = AudioRandomChunkTransform(run_time=5000, strict=False)
+    label_maker = label_maker_factory.create('english name')
+    dataset = ChirpyDataset('./test_db', 'audio',
+                            label_maker=label_maker,
+                            transform=transform)
+    for i in range(len(dataset)):
+        print (dataset[i])
+        raise RuntimeError('Dummy')
 
-test2()
+def test4():
+    transform = Compose([AudioRandomChunkTransform(5000), AudioToTensorTransform()])
+    label_maker = label_maker_factory.create('english name')
+    dataset = ChirpyDataset('./test_db', 'audio',
+                            label_maker=label_maker,
+                            transform=transform)
+    for i in range(len(dataset)):
+        print (dataset[i])
+
+
+test4()
