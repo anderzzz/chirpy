@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 from pydub import AudioSegment
 
-from request_train_data import RawDataHandler, label_maker_factory
+from rawdata import RawDataHandler, label_maker_factory
 from transforms import AudioToTensorTransform, AudioChunkifyTransform, AudioRandomChunkTransform, Compose
 
 class ChirpyDatasetFileTypeException(Exception):
@@ -98,8 +98,15 @@ def test4():
     dataset = ChirpyDataset('./test_db', 'audio',
                             label_maker=label_maker,
                             transform=transform)
+    ss = []
     for i in range(len(dataset)):
-        print (dataset[i])
+        xx = dataset[i]['audio']
+        xx = xx.double()
+        print (xx.mean(), xx.std())
+        ss.append(float(xx.std()))
+
+    print (sum(ss) / len(ss))
+    print (label_maker.label_map)
 
 
 test4()
