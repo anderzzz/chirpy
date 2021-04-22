@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from pydub import AudioSegment
 
 from request_train_data import RawDataHandler, label_maker_factory
-from transforms import AudioTo1DTensor
+from transforms import AudioTo1DTensor, AudioChunkifyTransform
 
 class ChirpyDatasetFileTypeException(Exception):
     pass
@@ -43,7 +43,7 @@ class ChirpyDataset(Dataset):
         self._audio = AudioSegment.from_file(str(audio_file_path), format=source_type)
 
         label = self.label_maker(db_item)
-        sample = self.transform(label, self._audio)
+        sample = self.transform(self._audio)
 
         return {'label' : label, 'audio' : sample}
 
@@ -57,4 +57,15 @@ def test1():
         print (dataset[i])
         raise RuntimeError('DUMP!')
 
-test1()
+def test2():
+    transform = AudioChunkifyTransform(run_time=5000, method='pad', strict=False)
+    label_maker = label_maker_factory.create('english name')
+    dataset = ChirpyDataset('./test_db', 'audio',
+                            label_maker=label_maker,
+                            transform=transform)
+    for i in range(len(dataset)):
+        print (dataset[i])
+        raise RuntimeError('Dummy')
+
+
+test2()
