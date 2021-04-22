@@ -93,7 +93,7 @@ def test3():
         raise RuntimeError('Dummy')
 
 def test4():
-    transform = Compose([AudioRandomChunkTransform(5000), AudioToTensorTransform()])
+    transform = Compose([AudioRandomChunkTransform(5000, strict=False), AudioToTensorTransform()])
     label_maker = label_maker_factory.create('english name')
     dataset = ChirpyDataset('./test_db', 'audio',
                             label_maker=label_maker,

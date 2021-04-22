@@ -161,7 +161,7 @@ class RawDataHandler(object):
         '''Bla bla
 
         '''
-        df = pd.read_csv(self.db_file, nrows=1, skiprows=list(range(k_row)))
+        df = pd.read_csv(self.db_file, nrows=1, skiprows=list(range(1, k_row + 1)), header=0)
         if df.shape[0] != 1:
             raise RawDataHandlerError('Row number {} does not return a single row. Corrupted database?'.format(k_row))
         return df.to_dict(orient='records')[0]
