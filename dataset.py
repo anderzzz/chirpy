@@ -94,7 +94,7 @@ def test3():
 
 def test4():
     transform = Compose([AudioRandomChunkTransform(5000, strict=False), AudioToTensorTransform()])
-    label_maker = label_maker_factory.create('english name')
+    label_maker = label_maker_factory.create('english name', label_container_source='test.json')
     dataset = ChirpyDataset('./test_db', 'audio',
                             label_maker=label_maker,
                             transform=transform)
@@ -107,6 +107,8 @@ def test4():
 
     print (sum(ss) / len(ss))
     print (label_maker.label_map)
+    with open('test.json', 'w') as fout:
+        label_maker.to_json(fout)
 
 
 test4()

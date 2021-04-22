@@ -5,6 +5,7 @@ import requests
 import urllib.parse
 from pathlib import Path
 import pandas as pd
+import json
 
 from dataclasses import dataclass
 from typing import Dict, List
@@ -22,6 +23,9 @@ class LabelMakerMissingDataNameException(Exception):
     pass
 
 class LabelMakerInvalidKeyException(Exception):
+    pass
+
+class LabelMakerMissingKeySourceException(Exception):
     pass
 
 @dataclass
@@ -234,12 +238,21 @@ class LabelMakerByOne(object):
     '''Bla bla
 
     '''
-    def __init__(self, data_name):
+    def __init__(self, data_name, label_container_source=None, augment_source=True):
         if not data_name in web_xeno_canto_payload_consts.data_names.keys():
             raise LabelMakerInvalidKeyException('The label key {} is not part of the data name constants'.format(data_name))
         self.data_name = data_name
-        self.label_container = {}
-        self.label_max = 0
+
+        if label_container_source is None:
+            self.label_container = {}
+            self.label_max = 0
+
+        else:
+            with open(label_container_source) as fin:
+                self.label_container = json.load(fin)['key_to_label']
+                self.label_max = len(self.label_container)
+
+        self.augment_source = augment_source
 
     def __call__(self, db_item):
         '''Bla bla
@@ -253,11 +266,18 @@ class LabelMakerByOne(object):
         try:
             label = self.label_container[data_val]
         except KeyError:
-            label = self.label_max
-            self.label_container[data_val] = label
-            self.label_max += 1
+            if self.augment_source:
+                label = self.label_max
+                self.label_container[data_val] = label
+                self.label_max += 1
+            else:
+                raise LabelMakerMissingKeySourceException('The key {} not assigned label in source, and augmentation set as `False`.'.format(data_val))
 
         return label
+
+    def to_json(self, fout):
+        out = {'key_to_label' : self.label_container, 'date_created' : str(datetime.now())}
+        json.dump(out, fout)
 
     @property
     def label_map(self):
@@ -275,8 +295,8 @@ class LabelMakerByOneBuilder(object):
         self._instance = None
         self.data_name = data_name
 
-    def __call__(self, **_ignored):
-        self._instance = LabelMakerByOne(data_name=self.data_name)
+    def __call__(self, **kwargs):
+        self._instance = LabelMakerByOne(data_name=self.data_name, **kwargs)
         return self._instance
 
 class LabelMakerFactory(object):
