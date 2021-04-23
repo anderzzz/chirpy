@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from pydub import AudioSegment
 
 from rawdata import RawDataHandler, label_maker_factory
-from transforms import AudioToTensorTransform, AudioChunkifyTransform, AudioRandomChunkTransform, Compose
+from transforms import AudioToTensorTransform, AudioChunkifyTransform, AudioRandomChunkTransform, Compose, AudioAddWhiteNoiseTransform
 
 class ChirpyDatasetFileTypeException(Exception):
     pass
@@ -110,5 +110,14 @@ def test4():
     with open('test.json', 'w') as fout:
         label_maker.to_json(fout)
 
+def test5():
+    transform = Compose([AudioRandomChunkTransform(5000, strict=False), AudioAddWhiteNoiseTransform(-20.0), AudioToTensorTransform()])
+    label_maker = label_maker_factory.create('english name')
+    dataset = ChirpyDataset('./test_db', 'audio',
+                            label_maker=label_maker,
+                            transform=transform)
+    for i in range(len(dataset)):
+        xx = dataset[i]['audio']
+        print (xx)
 
-test4()
+test5()

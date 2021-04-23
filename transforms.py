@@ -3,6 +3,8 @@
 '''
 import torch
 import pydub
+from pydub.generators import WhiteNoise
+
 import math
 from numpy.random import randint
 
@@ -48,6 +50,38 @@ class AudioDownSampleTransform(object):
     def __call__(self, audio):
         assert isinstance(audio, pydub.AudioSegment)
         audio.set_frame_rate(self.rate_target)
+
+        return audio
+
+class AudioNormalizeTransform(object):
+    '''Normalize the audio data.
+
+    Borrows from the corresponding functional in `torchvision`
+
+    '''
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, audio):
+        '''Bla bla
+
+        '''
+        if not isinstance(audio, torch.Tensor):
+            raise TypeError('Input audio should be a torch tensor. Got {}.'.format(type(audio)))
+
+        audio = audio.clone()
+
+        dtype = audio.dtype
+        mean = torch.as_tensor(self.mean, dtype=dtype, device=audio.device)
+        std = torch.as_tensor(self.std, dtype=dtype, device=audio.device)
+        if (std == 0).any():
+            raise ValueError('std evaluated to zero after conversion to {}, leading to division by zero.'.format(dtype))
+        if mean.ndim == 1:
+            mean = mean.view(-1, 1, 1)
+        if std.ndim == 1:
+            std = std.view(-1, 1, 1)
+        audio.sub_(mean).div_(std)
 
         return audio
 
@@ -137,15 +171,21 @@ class AudioChunkifyTransform(object):
         return audio_ret
 
 
-class AudioWhiteNoiseTransform(object):
+class AudioAddWhiteNoiseTransform(object):
     '''Bla bla
 
     '''
-    def __init__(self):
-        raise NotImplementedError()
+    def __init__(self, volume=-20.0, sample_rate=44100):
+        self.volume = volume
+        self.white_noise_generator = WhiteNoise(sample_rate=sample_rate)
 
     def __call__(self, audio):
-        pass
+        '''Bla bla
+
+        '''
+        audio_white_noise = self.white_noise_generator.to_audio_segment(duration=len(audio), volume=self.volume)
+        return audio.overlay(audio_white_noise)
+
 
 class AudioRandomChunkTransform(object):
     '''Bla bla
