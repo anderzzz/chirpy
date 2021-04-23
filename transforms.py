@@ -186,6 +186,43 @@ class AudioAddWhiteNoiseTransform(object):
         audio_white_noise = self.white_noise_generator.to_audio_segment(duration=len(audio), volume=self.volume)
         return audio.overlay(audio_white_noise)
 
+class AudioScaleVolumeTransform(object):
+    '''Scale the volume of the audio.
+
+    Since audio representations have a maximum possible amplitude, scaling up beyond some threshold will not
+    further impact the final output. The gain that is applied is logarithmic, so the initialization parameter
+    is centred around 0.0 and for well-behaved input audio the gain should not have to go outside the interval
+    [-20.0, 20.0].
+
+    Args:
+        gain (float): The gain to apply to the audio. That means 0.0 means no change, positive values increases
+            the amplitude of the input audio, and negative values decreases the amplitude. The gain is logarithmic.
+
+    '''
+    def __init__(self, gain):
+        self.gain = gain
+
+    def __call__(self, audio):
+        '''Bla bla
+
+        '''
+        return audio.apply_gain(self.gain)
+
+class AudioScaleVolumeRelativeMaxTransform(object):
+    '''Bla bla
+
+    '''
+    def __init__(self, factor_of_max):
+        assert factor_of_max <= 1.0
+        assert factor_of_max > 0.0
+        self.factor_of_max = factor_of_max
+
+    def __call__(self, audio):
+        '''Bla bla
+
+        '''
+        maxdbfs = audio.max_dBFS
+        return audio.apply_gain(math.log10(self.factor_of_max) - maxdbfs)
 
 class AudioRandomChunkTransform(object):
     '''Bla bla
