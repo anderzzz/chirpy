@@ -38,9 +38,9 @@ class ChirpyDataset(Dataset):
 
         db_item = self.rawdata.get_db_key_(item)
         audio_file_path = self.rawdata.get_audio_file_path_(db_item['catalogue_nr'])
-        if audio_file_path.suffix == '.wav':
+        if audio_file_path.suffix.lower() == '.wav':
             source_type = 'wav'
-        elif audio_file_path.suffix == '.mp3':
+        elif audio_file_path.suffix.lower() == '.mp3':
             source_type = 'mp3'
         else:
             raise ChirpyDatasetFileTypeException('Inferred file format for file {} not supported'.format(str(audio_file_path)))
