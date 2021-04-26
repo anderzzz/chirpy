@@ -6,6 +6,7 @@ import urllib.parse
 from pathlib import Path
 import pandas as pd
 import json
+from time import sleep
 
 from dataclasses import dataclass
 from typing import Dict, List
@@ -72,6 +73,9 @@ class WebXenoCanto(object):
 
     def __len__(self):
         return len(self.payloads)
+
+    def n_entries_payloads(self):
+        return list(map(len, self.payloads))
 
     def _get(self, url, params):
         return requests.get(url, params)
@@ -210,7 +214,7 @@ class RawDataHandler(object):
         '''
         raise NotImplementedError('De-duplication not implemented yet')
 
-    def download_audio(self, payload):
+    def download_audio(self, payload, sleep_seconds=None):
         '''Bla bla
 
         '''
@@ -228,6 +232,9 @@ class RawDataHandler(object):
 
             with open(audio_file_name, 'wb') as f_audio_file:
                 f_audio_file.write(r.content)
+
+            if not sleep_seconds is None:
+                sleep(sleep_seconds)
 
 #
 # Classes to map the semantics of a database entry to a numeric label that is to be
