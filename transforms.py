@@ -273,3 +273,12 @@ class AudioRandomImpulseTransform(object):
     def __call__(self, audio):
         pass
 
+class AudioTrafficOverlayTransform(AudioOverlayTransform):
+    '''Bla bla
+
+    '''
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, audio):
+        pass

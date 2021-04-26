@@ -23,9 +23,11 @@ db = RawDataHandler(db_rootdir='./db_April26',
                     subfolder='audio',
                     payload_consts=web_xeno_canto_payload_consts)
 for k_payload, payload in enumerate(xeno.payloads):
+    if k_payload < 6:
+        continue
     report_progress('Downloading payload set {} / {}'.format(k_payload + 1, len(xeno)))
 
     db.populate_metadata(payload, col_subset=COL_SUBSET_BIG)
-    db.download_audio(payload, sleep_seconds=1.0)
+    db.download_audio(payload, sleep_seconds=3.0)
 
     report_progress('Current size of database: {}'.format(len(db)))
