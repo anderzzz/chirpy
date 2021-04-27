@@ -84,7 +84,7 @@ def test2():
         raise RuntimeError('Dummy')
 
 def test3():
-    transform = AudioRandomChunkTransform(run_time=5000, strict=False)
+    transform = AudioRandomChunkTransform(run_time=5000, append_method='silence')
     label_maker = label_maker_factory.create('english name')
     dataset = ChirpyDataset('./test_db', 'audio',
                             label_maker=label_maker,
@@ -94,7 +94,7 @@ def test3():
         raise RuntimeError('Dummy')
 
 def test4():
-    transform = Compose([AudioRandomChunkTransform(5000, strict=False), AudioToTensorTransform()])
+    transform = Compose([AudioRandomChunkTransform(5000, append_method='silence'), AudioToTensorTransform()])
     label_maker = label_maker_factory.create('english name', label_container_source='test.json')
     dataset = ChirpyDataset('./test_db', 'audio',
                             label_maker=label_maker,
@@ -112,7 +112,7 @@ def test4():
         label_maker.to_json(fout)
 
 def test5():
-    transform = Compose([AudioRandomChunkTransform(5000, strict=False), AudioScaleVolumeRelativeMaxTransform(0.5), AudioAddWhiteNoiseTransform(-20.0), AudioToTensorTransform()])
+    transform = Compose([AudioRandomChunkTransform(5000, append_method='silence'), AudioScaleVolumeRelativeMaxTransform(0.5), AudioAddWhiteNoiseTransform(-20.0), AudioToTensorTransform()])
     label_maker = label_maker_factory.create('english name')
     dataset = ChirpyDataset('./test_db', 'audio',
                             label_maker=label_maker,
@@ -121,4 +121,4 @@ def test5():
         xx = dataset[i]['audio']
         print (xx)
 
-test5()
+#test5()

@@ -49,7 +49,7 @@ class AudioDownSampleTransform(object):
 
     def __call__(self, audio):
         assert isinstance(audio, pydub.AudioSegment)
-        audio.set_frame_rate(self.rate_target)
+        audio = audio.set_frame_rate(self.rate_target)
 
         return audio
 
@@ -228,9 +228,11 @@ class AudioRandomChunkTransform(object):
     '''Bla bla
 
     '''
-    def __init__(self, run_time, strict=True):
+    def __init__(self, run_time, append_method=None):
         self.run_time = run_time
-        self.strict = strict
+        if not append_method in [None, 'silence', 'cycle']:
+            raise AudioTransformChunkMethodException('Unknown append method {} given a shorter audio than run-time'.format(append_method))
+        self.append_method = append_method
 
     def __call__(self, audio):
         '''Bla bla
@@ -238,11 +240,17 @@ class AudioRandomChunkTransform(object):
         '''
         total_ms = len(audio)
         if total_ms < self.run_time:
-            if self.strict:
+            if self.append_method is None:
                 raise AudioTransformChunkMethodException('Total run-time for {} is {}, which is less than specified run-time {}'.format(audio, total_ms, self.run_time))
-            else:
+            elif self.append_method == 'silence':
                 silent_slack = self.run_time - total_ms
                 start = 0
+            elif self.append_method == 'cycle':
+                audio = audio * math.ceil(self.run_time / total_ms)
+                silent_slack = 0
+                start = 0
+            else:
+                raise AudioTransformChunkMethodException('Unknown append method {} given a shorter audio than run-time'.format(self.append_method))
         else:
             silent_slack = 0
             start = randint(low=0, high=total_ms - self.run_time)
@@ -252,6 +260,23 @@ class AudioRandomChunkTransform(object):
             audio_slice += pydub.AudioSegment.silent(silent_slack)
 
         return audio_slice
+
+class AudioRandomChunkCycledTransform(object):
+    '''Bla bla
+
+    '''
+    def __init__(self, run_time):
+        self.random_chunker = AudioRandomChunkTransform(run_time=run_time, strict=True)
+
+    def __call__(self, audio):
+        '''Bla bla
+
+        '''
+        if len(audio) < self.random_chunker.run_time:
+            audio_ = math.ceil(self.random_chunker.run_time / len(audio)) * audio
+        else:
+            audio_ = audio
+        self.random_chunker(audio_)
 
 class AudioOverlayTransform(object):
     '''Bla bla
