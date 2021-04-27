@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from model_1dconv import AudioModel1DAbdoli
 from dataset import ChirpyDataset
 from transforms import AudioToTensorTransform, AudioDownSampleTransform, AudioRandomChunkTransform, Compose
+from ensemble_criterion import MajorityVoter
 from rawdata import label_maker_factory
 
 class AudioLearner1DConv(object):
@@ -34,7 +35,7 @@ class AudioLearner1DConv(object):
                                      shuffle=True,
                                      num_workers=self.inp_num_workers)
         self.model = AudioModel1DAbdoli(n_classes=10)
-        self.criterion = nn.MSELoss()
+        self.criterion = MajorityVoter(ensemble_size=9)
 
         self.optimizer = None
         self.lr_scheduler = None
@@ -51,6 +52,7 @@ class AudioLearner1DConv(object):
                 print (inputs['audio'].shape)
                 mini_classes = self.model(inputs['audio'].float())
                 print (mini_classes.shape)
+                loss = self.criterion(mini_classes, inputs['label'])
                 raise RuntimeError
 
 
