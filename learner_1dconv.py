@@ -11,7 +11,7 @@ from model_1dconv import AudioModel1DAbdoli
 from dataset import ChirpyDataset
 from transforms import AudioToTensorTransform, AudioDownSampleTransform, AudioRandomChunkTransform, Compose
 from ensemble_criterion import MajorityVoter
-from rawdata import label_maker_factory
+from utils import label_maker_factory
 
 class AudioLearner1DConv(object):
     '''Bla bla

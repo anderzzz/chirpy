@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 from pydub import AudioSegment
 
-from rawdata import RawDataHandler, label_maker_factory
+from rawdata import RawDataHandler
 from transforms import AudioToTensorTransform, AudioChunkifyTransform, AudioRandomChunkTransform, Compose, \
     AudioAddWhiteNoiseTransform, AudioScaleVolumeTransform, AudioScaleVolumeRelativeMaxTransform
 
@@ -63,6 +63,7 @@ class ChirpyDataset(Dataset):
 
         return {'label' : label, 'audio' : sample}
 
+from utils import label_maker_factory
 def test1():
     transforms = AudioToTensorTransform()
     label_maker = label_maker_factory.create('english name')
