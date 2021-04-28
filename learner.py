@@ -2,23 +2,17 @@
 
 '''
 import sys
+
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torch import optim
 
-from model_1dconv import AudioModel1DAbdoli
-from dataset import ChirpyDataset
-from transforms import AudioToTensorTransform, AudioDownSampleTransform, AudioRandomChunkTransform, Compose
-from ensemble_criterion import MajorityVoter
-from utils import label_maker_factory
-
-class AudioLearner1DConv(object):
+class Learner(object):
     '''Bla bla
 
     '''
-    def __init__(self,
-                 db_rootdir, subfolder,
+    def __init__(self, data_train, data_test, model, criterion, scheduler,
                  loader_batch_size=16, num_workers=0,
                  f_out=sys.stdout, save_tmp_name='model_in_training',
                  optimizer='SGD', lr=0.001, momentum=0.9, weight_decay=0.0, betas=(0.9,0.999),
@@ -30,20 +24,28 @@ class AudioLearner1DConv(object):
         self.inp_num_workers = num_workers
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.dataloader_train = DataLoader(dataset=data_train,
+                                           batch_size=self.inp_loader_batch_size,
+                                           shuffle=True,
+                                           num_workers=self.inp_num_workers)
+        self.dataloader_test = DataLoader(dataset=data_test,
+                                          batch_size=self.inp_loader_batch_size,
+                                          shuffle=False,
+                                          num_workers=self.inp_num_workers)
+        self.model = model
 
-        transform = Compose([AudioDownSampleTransform(16000),
-                             AudioRandomChunkTransform(run_time=5000, append_method='cycle'),
-                             AudioToTensorTransform()])
-        self.dataset = ChirpyDataset(db_rootdir=db_rootdir, subfolder=subfolder,
-                                     label_maker=label_maker_factory.create('english name'),
-                                     transform=transform)
-        self.dataloader = DataLoader(self.dataset, batch_size=self.inp_loader_batch_size,
-                                     shuffle=True,
-                                     num_workers=self.inp_num_workers)
-        self.model = AudioModel1DAbdoli(n_classes=10)
-        self.criterion = MajorityVoter(ensemble_size=9)
+        if isinstance(criterion, nn.Module):
+            self.criterion = criterion
+        elif criterion == 'CrossEntropyLoss':
+            self.criterion = nn.CrossEntropyLoss()
+        elif criterion == 'MSELoss':
+            self.criterion = nn.MSELoss()
+        else:
+            raise ValueError('Unknown criterion type: {}'.format(criterion))
 
-        if optimizer == 'SGD':
+        if isinstance(optimizer, optim.Optimizer):
+            self.optimizer = optimizer
+        elif optimizer == 'SGD':
             self.optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
         elif optimizer == 'Adam':
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay, betas=betas)
@@ -52,9 +54,14 @@ class AudioLearner1DConv(object):
         else:
             raise ValueError('Unknown optimizer type: {}'.format(optimizer))
 
-        self.lr_scheduler = optim.lr_scheduler.StepLR(self.optimizer,
-                                                      step_size=scheduler_step_size,
-                                                      gamma=scheduler_gamma)
+        if isinstance(scheduler, optim.lr_scheduler._LRScheduler):
+            self.lr_scheduler = scheduler
+        elif scheduler == 'StepLR':
+            self.lr_scheduler = optim.lr_scheduler.StepLR(self.optimizer,
+                                                          step_size=scheduler_step_size,
+                                                          gamma=scheduler_gamma)
+        else:
+            raise ValueError('Unknown learning-rate scheduler type: {}'.format(scheduler))
 
     def save_model(self, model_path):
         '''Save encoder state dictionary
@@ -73,7 +80,7 @@ class AudioLearner1DConv(object):
 
             self.model.train()
             running_loss = 0.0
-            for inputs in self.dataloader:
+            for inputs in self.dataloader_train:
                 size_batch = inputs['audio'].size(0)
                 audio = inputs['audio'].float().to(self.device)
 
@@ -87,13 +94,8 @@ class AudioLearner1DConv(object):
 
                 running_loss += loss.item() * size_batch
 
+                raise RuntimeError('BOOOO!')
+
             running_loss = running_loss / float(len(self.dataset))
             self.save_model(self.inp_save_tmp_name)
 
-
-def test1():
-    learner = AudioLearner1DConv(db_rootdir='./db_April26', subfolder='audio', loader_batch_size=2)
-    learner.train(1)
-
-if __name__ == '__main__':
-    test1()

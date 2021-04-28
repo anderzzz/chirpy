@@ -4,10 +4,13 @@
 from torch import nn
 from window import WindowMaker1D
 
-class AudioModel1DAbdoli(nn.Module):
+class AudioModel1DAbdoli_16k_8k(nn.Module):
     '''Bla bla
 
     '''
+    window_maker_width = 16000
+    window_maker_stride = 8000
+
     def __init__(self, n_classes):
         super().__init__()
 
@@ -43,7 +46,9 @@ class AudioModel1DAbdoli(nn.Module):
                                                   nn.Linear(in_features=64, out_features=self.n_classes),
                                                   nn.Softmax(dim=1))
 
-        self.window_maker = WindowMaker1D(window_width=16000, stride=8000)
+        self.window_maker = WindowMaker1D(window_width=self.window_maker_width, stride=self.window_maker_stride)
+        self.ensemble_size = self.window_maker.ensemble_size
+        self.non_ensemble_size = self.window_maker.non_ensemble_size
 
     def forward(self, x):
         '''Bla bla

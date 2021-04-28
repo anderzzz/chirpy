@@ -1,7 +1,7 @@
 '''Bla bla
 
 '''
-import torch
+import math
 
 class WindowMaker1D(object):
     '''Bla bla
@@ -22,3 +22,9 @@ class WindowMaker1D(object):
         x = x.reshape(-1, self.window_width)
 
         return x
+
+    def ensemble_size(self, length):
+        return max(0, math.floor(1 + (length - self.window_width) / self.stride))
+
+    def non_ensemble_size(self, length):
+        return (length - self.window_width) % self.stride

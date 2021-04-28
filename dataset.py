@@ -20,7 +20,7 @@ class ChirpyDataset(Dataset):
     '''Bla bla
 
     '''
-    def __init__(self, db_rootdir, subfolder, label_maker, transform, force_mono=True):
+    def __init__(self, db_rootdir, subfolder, label_maker, transform, mask=None, force_mono=True):
         super(ChirpyDataset, self).__init__()
 
         self.rawdata = RawDataHandler(db_rootdir, subfolder)
@@ -28,15 +28,21 @@ class ChirpyDataset(Dataset):
         self.transform = transform
         self.force_mono = force_mono
 
+        if mask is None:
+            self.mask = [True] * self.rawdata.__len__()
+        else:
+            self.mask = mask
+        self._idxs = [ind for ind, val in enumerate(self.mask) if val]
+
     def __len__(self):
-        return self.rawdata.__len__()
+        return self.mask.count(True)
 
     def __getitem__(self, item):
 
         if torch.is_tensor(item):
             item = item.tolist()
 
-        db_item = self.rawdata.get_db_key_(item)
+        db_item = self.rawdata.get_db_key_(self._idxs[item])
         audio_file_path = self.rawdata.get_audio_file_path_(db_item['catalogue_nr'])
         if audio_file_path.suffix.lower() == '.wav':
             source_type = 'wav'

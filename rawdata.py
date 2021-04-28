@@ -179,6 +179,12 @@ class RawDataHandler(object):
             raise RawDataHandlerError('Audio file for catalogue number {} returns {} files rather than one file'.format(catalogue_nr, len(file)))
         return file[0]
 
+    def set_mask(self, condition):
+        '''Bla bla
+
+        '''
+
+
     def populate_metadata(self, payload, col_subset=None):
         '''Bla bla
 
