@@ -7,7 +7,7 @@ from torch.utils.data import random_split
 from rawdata import RawDataHandler
 from transforms import Compose, AudioToTensorTransform, AudioDownSampleTransform, AudioRandomChunkTransform, AudioNormalizeTransform
 from dataset import ChirpyDataset
-from models import AudioModel1DAbdoli_16k_8k
+from models import AudioModel1DAbdoli_16k_8k, AudioModel1DAbdoli_32k_8k
 from ensemble_criterion import MajorityVoter
 from learner import Learner
 
@@ -65,7 +65,8 @@ dataset_train, dataset_test = random_split(dataset, [n_train, n_test])
 #
 # Initialize model to train
 #
-model = AudioModel1DAbdoli_16k_8k(n_classes=len(birds_well_sampled))
+#model = AudioModel1DAbdoli_16k_8k(n_classes=len(birds_well_sampled))
+model = AudioModel1DAbdoli_32k_8k(n_classes=len(birds_well_sampled))
 
 #
 # Define criterion
@@ -82,5 +83,5 @@ train_me = Learner(data_train=dataset_train, data_test=dataset_test,
                    optimizer='SGD', scheduler='StepLR',
                    data_key='audio', label_key='label',
                    loader_batch_size=BATCH_SIZE,
-                   lr=0.01)
-train_me.train(5)
+                   lr=0.1, scheduler_step_size=5)
+train_me.train(15)
