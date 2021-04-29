@@ -19,9 +19,6 @@ class MajorityVoter(nn.Module):
         '''Bla bla
 
         '''
-        print (class_predictions)
-        print (class_truths)
-
         n_batches = class_predictions.shape[0] // self.ensemble_size
 
         all_predictions = []

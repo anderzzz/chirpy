@@ -27,10 +27,12 @@ class Learner(object):
         self.inp_num_workers = num_workers
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.n_data_train = len(data_train)
         self.dataloader_train = DataLoader(dataset=data_train,
                                            batch_size=self.inp_loader_batch_size,
                                            shuffle=True,
                                            num_workers=self.inp_num_workers)
+        self.n_data_test = len(data_test)
         self.dataloader_test = DataLoader(dataset=data_test,
                                           batch_size=self.inp_loader_batch_size,
                                           shuffle=False,
@@ -74,6 +76,14 @@ class Learner(object):
         '''
         torch.save({'model_state': self.model.state_dict()}, '{}.tar'.format(model_path))
 
+    def load_model(self, model_path):
+        '''Load image classification model from saved state dictionary
+        Args:
+            model_path (str): Path to the saved model to load
+        '''
+        saved_dict = torch.load('{}.tar'.format(model_path))
+        self.model.load_state_dict(saved_dict['model_state'])
+
     def train(self, n_epochs):
         '''Bla bla
 
@@ -85,10 +95,10 @@ class Learner(object):
             running_loss = 0.0
             for inputs in self.dataloader_train:
                 size_batch = inputs[self.inp_data_key].size(0)
-                audio = inputs[self.inp_data_key].float().to(self.device)
+                data_in = inputs[self.inp_data_key].float().to(self.device)
 
                 self.optimizer.zero_grad()
-                mini_classes = self.model(audio)
+                mini_classes = self.model(data_in)
 
                 loss = self.criterion(mini_classes, inputs[self.inp_label_key])
                 loss.backward()
@@ -96,9 +106,22 @@ class Learner(object):
                 self.lr_scheduler.step()
 
                 running_loss += loss.item() * size_batch
+                print (loss.item(), size_batch)
 
-                raise RuntimeError('BOOOO!')
-
-            running_loss = running_loss / float(len(self.dataset))
+            running_loss = running_loss / float(self.n_data_train)
+            print ('Training Loss: {}'.format(running_loss))
             self.save_model(self.inp_save_tmp_name)
 
+            self.model.eval()
+            running_loss = 0.0
+            for inputs in self.dataloader_test:
+                size_batch = inputs[self.inp_data_key].size(0)
+                audio = inputs[self.inp_data_key].float().to(self.device)
+
+                mini_classes = self.model(audio)
+                loss = self.criterion(mini_classes, inputs[self.inp_label_key])
+
+                running_loss += loss.item() * size_batch
+
+            running_loss = running_loss / float(self.n_data_test)
+            print ('Testing Loss: {}'.format(running_loss))

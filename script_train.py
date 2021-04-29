@@ -5,7 +5,7 @@ import pandas as pd
 from torch.utils.data import random_split
 
 from rawdata import RawDataHandler
-from transforms import Compose, AudioToTensorTransform, AudioDownSampleTransform, AudioRandomChunkTransform
+from transforms import Compose, AudioToTensorTransform, AudioDownSampleTransform, AudioRandomChunkTransform, AudioNormalizeTransform
 from dataset import ChirpyDataset
 from models import AudioModel1DAbdoli_16k_8k
 from ensemble_criterion import MajorityVoter
@@ -22,6 +22,7 @@ AUDIO_RATE = 16000
 AUDIO_CHUNK_RUNTIME = 5000
 AUDIO_TENSOR_LENGTH = AUDIO_RATE * AUDIO_CHUNK_RUNTIME / 1000
 FRAC_TEST = 0.20
+BATCH_SIZE = 64
 
 #
 # Determine the rows in the database that are adequately sampled
@@ -48,7 +49,8 @@ label_maker = lambda db_row_dict : bird2label[db_row_dict[COL2PREDICT]]
 transforms = Compose([
     AudioDownSampleTransform(AUDIO_RATE),
     AudioRandomChunkTransform(AUDIO_CHUNK_RUNTIME, append_method='cycle'),
-    AudioToTensorTransform()
+    AudioToTensorTransform('torch.FloatTensor'),
+    AudioNormalizeTransform(0.0, 1200.0)
 ])
 
 #
@@ -78,5 +80,7 @@ criterion = MajorityVoter(ensemble_size=model.ensemble_size(AUDIO_TENSOR_LENGTH)
 train_me = Learner(data_train=dataset_train, data_test=dataset_test,
                    model=model, criterion=criterion,
                    optimizer='SGD', scheduler='StepLR',
-                   data_key='audio', label_key='label')
-train_me.train(1)
+                   data_key='audio', label_key='label',
+                   loader_batch_size=BATCH_SIZE,
+                   lr=0.01)
+train_me.train(5)

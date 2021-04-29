@@ -31,12 +31,15 @@ class AudioToTensorTransform(object):
     '''Bla bla
 
     '''
-    def __init__(self):
-        pass
+    def __init__(self, dtype_cast=None):
+        self.dtype_cast = dtype_cast
 
     def __call__(self, audio):
         assert isinstance(audio, pydub.AudioSegment)
         audio_tensor = torch.tensor(audio.get_array_of_samples())
+
+        if not self.dtype_cast is None:
+            audio_tensor = audio_tensor.type(dtype=self.dtype_cast)
 
         return audio_tensor
 
