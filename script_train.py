@@ -77,5 +77,6 @@ criterion = MajorityVoter(ensemble_size=model.ensemble_size(AUDIO_TENSOR_LENGTH)
 #
 train_me = Learner(data_train=dataset_train, data_test=dataset_test,
                    model=model, criterion=criterion,
-                   optimizer='SGD', scheduler='StepLR')
+                   optimizer='SGD', scheduler='StepLR',
+                   data_key='audio', label_key='label')
 train_me.train(1)

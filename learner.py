@@ -13,11 +13,14 @@ class Learner(object):
 
     '''
     def __init__(self, data_train, data_test, model, criterion, scheduler,
+                 data_key, label_key,
                  loader_batch_size=16, num_workers=0,
                  f_out=sys.stdout, save_tmp_name='model_in_training',
                  optimizer='SGD', lr=0.001, momentum=0.9, weight_decay=0.0, betas=(0.9,0.999),
                  scheduler_step_size=10, scheduler_gamma=0.1):
 
+        self.inp_data_key = data_key
+        self.inp_label_key = label_key
         self.inp_f_out = f_out
         self.inp_save_tmp_name = save_tmp_name
         self.inp_loader_batch_size = loader_batch_size
@@ -81,13 +84,13 @@ class Learner(object):
             self.model.train()
             running_loss = 0.0
             for inputs in self.dataloader_train:
-                size_batch = inputs['audio'].size(0)
-                audio = inputs['audio'].float().to(self.device)
+                size_batch = inputs[self.inp_data_key].size(0)
+                audio = inputs[self.inp_data_key].float().to(self.device)
 
                 self.optimizer.zero_grad()
                 mini_classes = self.model(audio)
 
-                loss = self.criterion(mini_classes, inputs['label'])
+                loss = self.criterion(mini_classes, inputs[self.inp_label_key])
                 loss.backward()
                 self.optimizer.step()
                 self.lr_scheduler.step()
